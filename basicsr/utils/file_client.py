@@ -6,6 +6,7 @@
 # ------------------------------------------------------------------------
 # Modified from https://github.com/open-mmlab/mmcv/blob/master/mmcv/fileio/file_client.py  # noqa: E501
 from abc import ABCMeta, abstractmethod
+import numpy as np
 
 
 class BaseStorageBackend(metaclass=ABCMeta):

@@ -86,7 +86,7 @@ class PairedImageDataset(data.Dataset):
         # image range: [0, 1], float32.
         gt_path = self.paths[index]['gt_path']
         print('gt path,', gt_path)
-        img_bytes = self.file_client.get_npy(gt_path, 'gt')
+        img_bytes = self.file_client.get_npy(gt_path)
         try:
             # Here!!! Images bytes are converted into numpy arrays!!!
             # img_gt = imfrombytes(img_bytes, float32=True)
@@ -96,7 +96,7 @@ class PairedImageDataset(data.Dataset):
 
         lq_path = self.paths[index]['lq_path']
         # print(', lq path', lq_path)
-        img_bytes = self.file_client.get_npy(lq_path, 'lq')
+        img_bytes = self.file_client.get_npy(lq_path)
         try:
             # img_lq = imfrombytes(img_bytes, float32=True)
             img_lq = img_bytes
