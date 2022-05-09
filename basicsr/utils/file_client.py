@@ -78,6 +78,11 @@ class HardDiskBackend(BaseStorageBackend):
             value_buf = f.read()
         return value_buf
 
+    # add reading numpy arrays option
+    def get_nparray(self, filepath):
+        filepath = str(filepath)
+        return np.load(filepath)
+
 
 class LmdbBackend(BaseStorageBackend):
     """Lmdb storage backend.
@@ -189,4 +194,5 @@ class FileClient(object):
             return self.client.get(filepath)
 
     def get_text(self, filepath):
-        return self.client.get_text(filepath)
+        # return self.client.get_text(filepath)
+        return self.client.get_nparray(filepath)

@@ -85,10 +85,12 @@ class PairedImageDataset(data.Dataset):
         # Load gt and lq images. Dimension order: HWC; channel order: BGR;
         # image range: [0, 1], float32.
         gt_path = self.paths[index]['gt_path']
-        # print('gt path,', gt_path)
+        print('gt path,', gt_path)
         img_bytes = self.file_client.get(gt_path, 'gt')
         try:
-            img_gt = imfrombytes(img_bytes, float32=True)
+            # Here!!! Images bytes are converted into numpy arrays!!!
+            # img_gt = imfrombytes(img_bytes, float32=True)
+            img_gt = img_bytes
         except:
             raise Exception("gt path {} not working".format(gt_path))
 
@@ -96,7 +98,8 @@ class PairedImageDataset(data.Dataset):
         # print(', lq path', lq_path)
         img_bytes = self.file_client.get(lq_path, 'lq')
         try:
-            img_lq = imfrombytes(img_bytes, float32=True)
+            # img_lq = imfrombytes(img_bytes, float32=True)
+            img_lq = img_bytes
         except:
             raise Exception("lq path {} not working".format(lq_path))
 
@@ -117,7 +120,7 @@ class PairedImageDataset(data.Dataset):
         # TODO: color space transform
         # BGR to RGB, HWC to CHW, numpy to tensor
         img_gt, img_lq = img2tensor([img_gt, img_lq],
-                                    bgr2rgb=True,
+                                    bgr2rgb=False,
                                     float32=True)
         # normalize
         if self.mean is not None or self.std is not None:
