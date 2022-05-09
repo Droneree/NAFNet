@@ -194,5 +194,7 @@ class FileClient(object):
             return self.client.get(filepath)
 
     def get_text(self, filepath):
-        # return self.client.get_text(filepath)
+        return self.client.get_text(filepath)
+
+    def get_npy(self, filepath):
         return self.client.get_nparray(filepath)
