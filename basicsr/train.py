@@ -269,8 +269,9 @@ def main():
                 rgb2bgr = opt['val'].get('rgb2bgr', True)
                 # wheather use uint8 image to compute metrics
                 use_image = opt['val'].get('use_image', True)
-                model.validation(val_loader, current_iter, tb_logger,
-                                 opt['val']['save_img'], rgb2bgr, use_image )
+                with torch.no_grad():
+                    model.validation(val_loader, current_iter, tb_logger,
+                                     opt['val']['save_img'], rgb2bgr, use_image )
                 log_vars = {'epoch': epoch, 'iter': current_iter, 'total_iter': total_iters}
                 log_vars.update({'lrs': model.get_current_learning_rate()})
                 log_vars.update(model.get_current_log())

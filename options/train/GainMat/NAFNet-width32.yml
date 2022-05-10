@@ -30,7 +30,7 @@ datasets:
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 4
+    batch_size_per_gpu: 2
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -46,15 +46,22 @@ datasets:
 network_g:
   type: NAFNet
   width: 32
-  enc_blk_nums: [2, 2, 4, 8]
-  middle_blk_num: 12
-  dec_blk_nums: [2, 2, 2, 2]
+  img_channel: 1
+  enc_blk_nums: [1, 1, 1, 2]
+  middle_blk_num: 1
+  dec_blk_nums: [1, 1, 1, 1]
 
+# mannual specify image size
+img_sz:
+  img_ht: 960
+  img_wd: 240
+  
 # path
 path:
   pretrain_network_g: ~
   strict_load_g: true
   resume_state: ~
+  # models: /home/lllei/AI_localization/NAFNet/experiments
 
 # training settings
 train:
@@ -69,7 +76,7 @@ train:
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 200000
+  total_iter: 20000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -78,11 +85,22 @@ train:
     loss_weight: 1
     reduction: mean
 
+  l1_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+  l2_opt:
+    type: MSELoss
+    loss_weight: 1.0
+    reduction: mean
+    
 # validation settings
 val:
   val_freq: !!float 2e4
   save_img: false
   use_image: false
+  rgb2bgr: false
 
   metrics:
     psnr: # metric name, can be arbitrary

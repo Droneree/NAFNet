@@ -85,7 +85,7 @@ class PairedImageDataset(data.Dataset):
         # Load gt and lq images. Dimension order: HWC; channel order: BGR;
         # image range: [0, 1], float32.
         gt_path = self.paths[index]['gt_path']
-        print('gt path,', gt_path)
+        # print('gt path,', gt_path)
         img_bytes = self.file_client.get_npy(gt_path)
         try:
             # Here!!! Images bytes are converted into numpy arrays!!!
@@ -104,18 +104,18 @@ class PairedImageDataset(data.Dataset):
             raise Exception("lq path {} not working".format(lq_path))
 
 
-        # augmentation for training
-        if self.opt['phase'] == 'train':
-            gt_size = self.opt['gt_size']
-            # padding
-            img_gt, img_lq = padding(img_gt, img_lq, gt_size)
+        # # augmentation for training
+        # if self.opt['phase'] == 'train':
+        #     gt_size = self.opt['gt_size']
+        #     # padding
+        #     img_gt, img_lq = padding(img_gt, img_lq, gt_size)
 
-            # random crop
-            img_gt, img_lq = paired_random_crop(img_gt, img_lq, gt_size, scale,
-                                                gt_path)
-            # flip, rotation
-            img_gt, img_lq = augment([img_gt, img_lq], self.opt['use_flip'],
-                                     self.opt['use_rot'])
+        #     # random crop
+        #     img_gt, img_lq = paired_random_crop(img_gt, img_lq, gt_size, scale,
+        #                                         gt_path)
+        #     # flip, rotation
+        #     img_gt, img_lq = augment([img_gt, img_lq], self.opt['use_flip'],
+        #                              self.opt['use_rot'])
 
         # TODO: color space transform
         # BGR to RGB, HWC to CHW, numpy to tensor

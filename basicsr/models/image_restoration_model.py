@@ -16,6 +16,8 @@ from basicsr.models.archs import define_network
 from basicsr.models.base_model import BaseModel
 from basicsr.utils import get_root_logger, imwrite, tensor2img
 from basicsr.utils.dist_util import get_dist_info
+from torchsummary import summary
+
 
 loss_module = importlib.import_module('basicsr.models.losses')
 metric_module = importlib.import_module('basicsr.metrics')
@@ -28,6 +30,12 @@ class ImageRestorationModel(BaseModel):
 
         # define network
         self.net_g = define_network(deepcopy(opt['network_g']))
+
+        # keras like model summary
+        summary(self.net_g, input_size=(opt['network_g']['img_channel'], 
+                opt['img_sz']['img_ht'], opt['img_sz']['img_wd']), 
+                device='cpu')
+
         self.net_g = self.model_to_device(self.net_g)
 
         # load pretrained models

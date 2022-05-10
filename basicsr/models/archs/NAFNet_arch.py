@@ -18,6 +18,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from basicsr.models.archs.arch_util import LayerNorm2d
 from basicsr.models.archs.local_arch import Local_Base
+from torchsummary import summary
+
 
 class SimpleGate(nn.Module):
     def forward(self, x):
@@ -188,12 +190,14 @@ if __name__ == '__main__':
         LastMem = usage[2] / 1024.0
         return usage[2] / 1024.0
 
-    img_channel = 3
+    img_channel = 1
+    img_ht = 960
+    img_wd = 240
     width = 32
     
-    enc_blks = [2, 2, 2, 20]
-    middle_blk_num = 2
-    dec_blks = [2, 2, 2, 2]
+    enc_blks = [1, 1, 2, 8]
+    middle_blk_num = 4
+    dec_blks = [1, 1, 1, 1]
     
     print('enc blks', enc_blks, 'middle blk num', middle_blk_num, 'dec blks', dec_blks, 'width' , width)
     
@@ -206,8 +210,7 @@ if __name__ == '__main__':
     # for n, p in net.named_parameters()
     #     print(n, p.shape)
 
-
-    inp = torch.randn((4, 3, 256, 256))
+    inp = torch.randn((4, img_channel, img_ht, img_wd))
 
     out = net(inp)
     final_mem = using('end .. ')
@@ -219,18 +222,21 @@ if __name__ == '__main__':
 
     # exit(0)
 
-    inp_shape = (3, 512, 512)
+    # keras like model summary
+    summary(net, input_size=(img_channel, img_ht, img_wd), device='cpu')
 
-    from ptflops import get_model_complexity_info
+    # inp_shape = (3, 512, 512)
 
-    macs, params = get_model_complexity_info(net, inp_shape, verbose=False, print_per_layer_stat=False)
+    # from ptflops import get_model_complexity_info
 
-    params = float(params[:-3])
-    macs = float(macs[:-4])
+    # macs, params = get_model_complexity_info(net, inp_shape, verbose=False, print_per_layer_stat=False)
 
-    print(macs, params)
+    # params = float(params[:-3])
+    # macs = float(macs[:-4])
 
-    print('total .. ', params * 8 + final_mem)
+    # print(macs, params)
+
+    # print('total .. ', params * 8 + final_mem)
 
 
 
