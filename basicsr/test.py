@@ -7,6 +7,8 @@
 import logging
 import torch
 from os import path as osp
+import sys 
+sys.path.append('/home/lllei/AI_localization/NAFNet')
 
 from basicsr.data import create_dataloader, create_dataset
 from basicsr.models import create_model
