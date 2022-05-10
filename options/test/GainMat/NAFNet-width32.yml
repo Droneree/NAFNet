@@ -18,7 +18,7 @@ datasets:
     name: GainMat
     type: PairedImageDataset
 
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/train/lq
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/test/lq
     dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/test/gt
 
     io_backend:
