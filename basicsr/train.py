@@ -92,7 +92,7 @@ def init_loggers(opt):
     tb_logger = None
     if opt['logger'].get('use_tb_logger') and 'debug' not in opt['name']:
         # tb_logger = init_tb_logger(log_dir=f'./logs/{opt['name']}') #mkdir logs @CLY
-        tb_logger = init_tb_logger(log_dir=osp.join('logs', opt['name']))
+        tb_logger = init_tb_logger(log_dir=osp.join('tb_logger', opt['name']))
     return logger, tb_logger
 
 

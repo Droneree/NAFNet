@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: NAFNet-GainMat-width32-F15-sob
+name: SRCNN-GainMat-F15-sob
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -30,7 +30,7 @@ datasets:
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 4
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
@@ -44,12 +44,11 @@ datasets:
 
 
 network_g:
-  type: NAFNet
-  width: 32
+  type: SRCNN
   img_channel: 1
-  enc_blk_nums: [1, 1, 1, 2]
-  middle_blk_num: 1
-  dec_blk_nums: [1, 1, 1, 1]
+  strides: [!!python/tuple [1, 1], !!python/tuple [1, 1], !!python/tuple [1, 1]]
+  kernel_sizes: [!!python/tuple [21, 9], !!python/tuple [15, 15], !!python/tuple [5, 5]]
+  c_expand: 64
 
 # mannual specify image size
 img_sz:
@@ -66,17 +65,17 @@ path:
 # training settings
 train:
   optim_g:
-    type: AdamW
-    lr: !!float 1e-3
+    type: Adam
+    lr: !!float 1e-4
     weight_decay: 0.
-    betas: [0.9, 0.9]
+    # betas: [0.9, 0.9]
 
   scheduler:
     type: TrueCosineAnnealingLR
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 200000
+  total_iter: 100000
   warmup_iter: -1 # no warm up
 
   # losses
