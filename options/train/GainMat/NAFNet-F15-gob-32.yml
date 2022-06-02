@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: SRCNN-GainMat-F15-sob
+name: NAFNet-GainMat-F15-gob-32
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -15,8 +15,8 @@ datasets:
   train:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/gamma_40/train/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/gamma_40/train/gt
 
     filename_tmpl: '{}'
     io_backend:
@@ -37,18 +37,19 @@ datasets:
   val:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/gamma_40/val/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/gamma_40/val/gt
     io_backend:
       type: disk
 
 
 network_g:
-  type: SRCNN
+  type: NAFNet
+  width: 32
   img_channel: 1
-  strides: [!!python/tuple [1, 1], !!python/tuple [1, 1], !!python/tuple [1, 1]]
-  kernel_sizes: [!!python/tuple [21, 9], !!python/tuple [15, 15], !!python/tuple [5, 5]]
-  c_expand: 64
+  enc_blk_nums: [1, 1, 1, 1]
+  middle_blk_num: 1
+  dec_blk_nums: [1, 1, 1, 1]
 
 # mannual specify image size
 img_sz:
@@ -68,14 +69,14 @@ train:
     type: AdamW
     lr: !!float 1e-4
     weight_decay: 0.
-    # betas: [0.9, 0.9]
+    betas: [0.9, 0.9]
 
   scheduler:
     type: TrueCosineAnnealingLR
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 30000
+  total_iter: 50000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -110,6 +111,8 @@ val:
       type: calculate_ssim
       crop_border: 0
       test_y_channel: false
+    mse:
+      type: calculate_mse
 
 # logging settings
 logger:

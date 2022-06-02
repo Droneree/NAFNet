@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: SRCNN-GainMat-F15-sob
+name: SRCNN-GainMat-F15-aob
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -15,8 +15,8 @@ datasets:
   train:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/train/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/train/gt
 
     filename_tmpl: '{}'
     io_backend:
@@ -37,8 +37,8 @@ datasets:
   val:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/val/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/val/gt
     io_backend:
       type: disk
 

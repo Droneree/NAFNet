@@ -15,7 +15,7 @@ from torchsummary import summary
 
 
 class SRCNNBlock(nn.Module):
-    def __init__(self, c, c_expand=128, kernel_sizes=[(9, 9), (5, 5), (5, 5)], strides=[(1, 1), (1, 1), (1, 1)]):
+    def __init__(self, c, c_expand=128, kernel_sizes=[], strides=[]):
         super().__init__()
         
         self.kernel_sizes = kernel_sizes
@@ -26,37 +26,48 @@ class SRCNNBlock(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=dw_channel, out_channels=dw_channel // 2, kernel_size=kernel_sizes[1], 
                                 padding=0, stride=strides[1], groups=1, bias=True)
         self.conv3 = nn.Conv2d(in_channels=dw_channel // 2, out_channels=c, kernel_size=kernel_sizes[2], 
-                                padding=0, stride=strides[2], groups=1, bias=True)
+                        padding=0, stride=strides[2], groups=1, bias=True)
+        # self.conv3 = nn.Conv2d(in_channels=dw_channel // 2, out_channels=dw_channel // 4, kernel_size=kernel_sizes[2], 
+        #                         padding=0, stride=strides[2], groups=1, bias=True)
+        # self.conv4 = nn.Conv2d(in_channels=dw_channel // 4, out_channels=c, kernel_size=kernel_sizes[3], 
+        #                         padding=0, stride=strides[3], groups=1, bias=True)
 
     def forward(self, inp):
         x = inp
 
-        x = self.CircularPadding(x)
+        x = self.CircularPadding(x, 0)
         x = self.conv1(x)
         x = F.relu(x)
 
-        # x = self.CircularPadding(x, 1)
+        x = self.CircularPadding(x, 1)
         x = self.conv2(x)
         x = F.relu(x)
 
-        # x = self.CircularPadding(x, 2)
+        x = self.CircularPadding(x, 2)
         x = self.conv3(x)
+
+        # x = self.CircularPadding(x, 2)
+        # x = self.conv3(x)
+        # x = F.relu(x)
+
+        # x = self.CircularPadding(x, 3)
+        # x = self.conv4(x)
 
         return x
 
-    def CircularPadding(self, inp):
+    def CircularPadding(self, inp, iconv):
         _, _, H, W = inp.shape
-        kht, kwd = self.kernel_sizes[0]
-        sht, swd = self.strides[0]
+        kht, kwd = self.kernel_sizes[iconv]
+        sht, swd = self.strides[iconv]
         assert kwd%2 != 0 and kht%2 !=0 and (W-kwd)%swd==0 and (H-kht)%sht ==0, 'kernel_size should be odd, (dim-kernel_size) should be divisible by stride'
 
-        # pwd = int((W - 1 - (W - kwd) / swd) // 2)
-        # pht = int((H - 1 - (H - kht) / sht) // 2)
+        pwd = int((W - 1 - (W - kwd) / swd) // 2)
+        pht = int((H - 1 - (H - kht) / sht) // 2)
         
-        kht1, kwd1 = self.kernel_sizes[1]
-        kht2, kwd2 = self.kernel_sizes[2]
-        pwd = int((W - 1 - (W - kwd) / swd) // 2 + (W - 1 - (W - kwd1) / swd) // 2 + (W - 1 - (W - kwd2) / swd) // 2)
-        pht = int((H - 1 - (H - kht) / sht) // 2 + (H - 1 - (H - kht1) / sht) // 2 + (H - 1 - (H - kht2) / sht) // 2)
+        # kht1, kwd1 = self.kernel_sizes[1]
+        # kht2, kwd2 = self.kernel_sizes[2]
+        # pwd = int((W - 1 - (W - kwd) / swd) // 2 + (W - 1 - (W - kwd1) / swd) // 2 + (W - 1 - (W - kwd2) / swd) // 2)
+        # pht = int((H - 1 - (H - kht) / sht) // 2 + (H - 1 - (H - kht1) / sht) // 2 + (H - 1 - (H - kht2) / sht) // 2)
         
         x = F.pad(inp, (pwd, pwd, pht, pht), 'circular')
 
@@ -65,47 +76,47 @@ class SRCNNBlock(nn.Module):
 
 class SRCNN(nn.Module):
 
-    # def __init__(self, img_channel=1, c_expand=64, kernel_sizes=[], strides=[]):
-    #     super().__init__()
-
-    #     self.blk = SRCNNBlock(img_channel, c_expand, kernel_sizes, strides)
-
-    # def forward(self, inp):
-    #     return self.blk(inp)
-
     def __init__(self, img_channel=1, c_expand=64, kernel_sizes=[], strides=[]):
         super().__init__()
 
-        self.layer1 = torch.nn.Sequential(
-            torch.nn.Conv2d(1, 64, kernel_size=(21,9), stride=1, padding=0, bias=True),
-            torch.nn.ReLU())
+        self.blk = SRCNNBlock(img_channel, c_expand, kernel_sizes, strides)
 
-        self.layer2 = torch.nn.Sequential(
-            torch.nn.Conv2d(64, 32, kernel_size=(15,15), stride=1, padding=0, bias=True),
-            torch.nn.ReLU())
+    def forward(self, inp):
+        return self.blk(inp)
 
-        self.layer3 = torch.nn.Sequential(
-            torch.nn.Conv2d(32, 1, kernel_size=(5,5), stride=1, padding=0, bias=True))
+    # def __init__(self, img_channel=1, c_expand=64, kernel_sizes=[], strides=[]):
+    #     super().__init__()
 
-    def forward(self, x):
-        W = 240
-        H = 960
-        kwd = 9
-        kht = 21
-        kwd1 = 15
-        kht1 = 15
-        kwd2 = 5
-        kht2 = 5
-        swd = 1
-        sht = 1
-        pwd = int((W - 1 - (W - kwd) / swd) // 2 + (W - 1 - (W - kwd1) / swd) // 2 + (W - 1 - (W - kwd2) / swd) // 2)
-        pht = int((H - 1 - (H - kht) / sht) // 2 + (H - 1 - (H - kht1) / sht) // 2 + (H - 1 - (H - kht2) / sht) // 2)
+    #     self.layer1 = torch.nn.Sequential(
+    #         torch.nn.Conv2d(1, 64, kernel_size=(21,9), stride=1, padding=0, bias=True),
+    #         torch.nn.ReLU())
+
+    #     self.layer2 = torch.nn.Sequential(
+    #         torch.nn.Conv2d(64, 32, kernel_size=(15,15), stride=1, padding=0, bias=True),
+    #         torch.nn.ReLU())
+
+    #     self.layer3 = torch.nn.Sequential(
+    #         torch.nn.Conv2d(32, 1, kernel_size=(5,5), stride=1, padding=0, bias=True))
+
+    # def forward(self, x):
+    #     W = 240
+    #     H = 960
+    #     kwd = 9
+    #     kht = 21
+    #     kwd1 = 15
+    #     kht1 = 15
+    #     kwd2 = 5
+    #     kht2 = 5
+    #     swd = 1
+    #     sht = 1
+    #     pwd = int((W - 1 - (W - kwd) / swd) // 2 + (W - 1 - (W - kwd1) / swd) // 2 + (W - 1 - (W - kwd2) / swd) // 2)
+    #     pht = int((H - 1 - (H - kht) / sht) // 2 + (H - 1 - (H - kht1) / sht) // 2 + (H - 1 - (H - kht2) / sht) // 2)
         
-        x = F.pad(x, (pwd, pwd, pht, pht), 'circular')
-        out = self.layer1(x)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        return out
+    #     x = F.pad(x, (pwd, pwd, pht, pht), 'circular')
+    #     out = self.layer1(x)
+    #     out = self.layer2(out)
+    #     out = self.layer3(out)
+    #     return out
 
 
 if __name__ == '__main__':

@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: NAFNet-GainMat-width32-F15-sob
+name: SRCNN-GainMat-F15-aob-32
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -15,8 +15,8 @@ datasets:
   train:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/train/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/train/gt
 
     filename_tmpl: '{}'
     io_backend:
@@ -30,26 +30,25 @@ datasets:
     # data loader
     use_shuffle: true
     num_worker_per_gpu: 4
-    batch_size_per_gpu: 2
+    batch_size_per_gpu: 4
     dataset_enlarge_ratio: 1
     prefetch_mode: ~
 
   val:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/val/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/val/gt
     io_backend:
       type: disk
 
 
 network_g:
-  type: NAFNet
-  width: 32
+  type: SRCNN
   img_channel: 1
-  enc_blk_nums: [1, 1, 1, 2]
-  middle_blk_num: 1
-  dec_blk_nums: [1, 1, 1, 1]
+  strides: [!!python/tuple [1, 1], !!python/tuple [1, 1], !!python/tuple [1, 1]]
+  kernel_sizes: [!!python/tuple [61, 21], !!python/tuple [21, 21], !!python/tuple [5, 5]]
+  c_expand: 32
 
 # mannual specify image size
 img_sz:
@@ -67,16 +66,16 @@ path:
 train:
   optim_g:
     type: AdamW
-    lr: !!float 1e-3
+    lr: !!float 1e-5
     weight_decay: 0.
-    betas: [0.9, 0.9]
+    # betas: [0.9, 0.9]
 
   scheduler:
     type: TrueCosineAnnealingLR
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 200000
+  total_iter: 20000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -111,6 +110,8 @@ val:
       type: calculate_ssim
       crop_border: 0
       test_y_channel: false
+    mse:
+      type: calculate_mse
 
 # logging settings
 logger:

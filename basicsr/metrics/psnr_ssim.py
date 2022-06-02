@@ -13,6 +13,16 @@ from basicsr.metrics.metric_util import reorder_image, to_y_channel
 from skimage.metrics import structural_similarity
 import torch
 
+def calculate_mse(pred, gt):
+    if type(pred) == torch.Tensor:
+        pred = pred.detach().cpu().numpy().squeeze()
+    if type(gt) == torch.Tensor:
+        gt = gt.detach().cpu().numpy().squeeze()
+        
+    mse = np.mean((pred - gt)**2)
+
+    return mse*1e6
+    
 def calculate_psnr(img1,
                    img2,
                    crop_border,

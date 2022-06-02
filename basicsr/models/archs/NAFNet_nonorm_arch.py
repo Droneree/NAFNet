@@ -61,7 +61,7 @@ class NAFBlock(nn.Module):
     def forward(self, inp):
         x = inp
 
-        x = self.norm1(x)
+        # x = self.norm1(x)
 
         x = self.conv1(x)
         x = self.conv2(x)
@@ -73,8 +73,8 @@ class NAFBlock(nn.Module):
 
         y = inp + x * self.beta
 
-        x = self.conv4(self.norm2(y))
-        # x = self.conv4(y) # if no layer normalization 
+        # x = self.conv4(self.norm2(y))
+        x = self.conv4(y) # if no layer normalization 
         x = self.sg(x)
         x = self.conv5(x)
 
@@ -83,7 +83,7 @@ class NAFBlock(nn.Module):
         return y + x * self.gamma
 
 
-class NAFNet(nn.Module):
+class NAFNet_nonorm(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
@@ -164,7 +164,7 @@ class NAFNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
         return x
 
-class NAFNetLocal(Local_Base, NAFNet):
+class NAFNetLocal(Local_Base, NAFNet_nonorm):
     def __init__(self, *args, train_size=(1, 3, 256, 256), fast_imp=False, **kwargs):
         Local_Base.__init__(self)
         NAFNet.__init__(self, *args, **kwargs)

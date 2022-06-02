@@ -26,7 +26,7 @@ class SimpleGate(nn.Module):
         x1, x2 = x.chunk(2, dim=1)
         return x1 * x2
 
-class NAFBlock(nn.Module):
+class PlainBlock(nn.Module):
     def __init__(self, c, DW_Expand=2, FFN_Expand=2, drop_out_rate=0.):
         super().__init__()
         dw_channel = c * DW_Expand
@@ -35,15 +35,8 @@ class NAFBlock(nn.Module):
                                bias=True)
         self.conv3 = nn.Conv2d(in_channels=dw_channel // 2, out_channels=c, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
         
-        # Simplified Channel Attention
-        self.sca = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels=dw_channel // 2, out_channels=dw_channel // 2, kernel_size=1, padding=0, stride=1,
-                      groups=1, bias=True),
-        )
-
-        # SimpleGate
-        self.sg = SimpleGate()
+        # relu
+        self.relu = nn.ReLU()
 
         ffn_channel = FFN_Expand * c
         self.conv4 = nn.Conv2d(in_channels=c, out_channels=ffn_channel, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
@@ -61,21 +54,17 @@ class NAFBlock(nn.Module):
     def forward(self, inp):
         x = inp
 
-        x = self.norm1(x)
-
         x = self.conv1(x)
         x = self.conv2(x)
-        x = self.sg(x)
-        x = x * self.sca(x)
+        x = self.relu(x)
         x = self.conv3(x)
 
         x = self.dropout1(x)
 
         y = inp + x * self.beta
 
-        x = self.conv4(self.norm2(y))
-        # x = self.conv4(y) # if no layer normalization 
-        x = self.sg(x)
+        x = self.conv4(y) # if no layer normalization 
+        x = self.relu(x)
         x = self.conv5(x)
 
         x = self.dropout2(x)
@@ -83,7 +72,7 @@ class NAFBlock(nn.Module):
         return y + x * self.gamma
 
 
-class NAFNet(nn.Module):
+class PlainNet(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
@@ -103,7 +92,7 @@ class NAFNet(nn.Module):
         for num in enc_blk_nums:
             self.encoders.append(
                 nn.Sequential(
-                    *[NAFBlock(chan) for _ in range(num)]
+                    *[PlainBloch(chan) for _ in range(num)]
                 )
             )
             self.downs.append(
@@ -113,7 +102,7 @@ class NAFNet(nn.Module):
 
         self.middle_blks = \
             nn.Sequential(
-                *[NAFBlock(chan) for _ in range(middle_blk_num)]
+                *[PlainBloch(chan) for _ in range(middle_blk_num)]
             )
 
         for num in dec_blk_nums:
@@ -126,7 +115,7 @@ class NAFNet(nn.Module):
             chan = chan // 2
             self.decoders.append(
                 nn.Sequential(
-                    *[NAFBlock(chan) for _ in range(num)]
+                    *[PlainBloch(chan) for _ in range(num)]
                 )
             )
 
@@ -164,10 +153,10 @@ class NAFNet(nn.Module):
         x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
         return x
 
-class NAFNetLocal(Local_Base, NAFNet):
+class PLainNetLocal(Local_Base, PlainNet):
     def __init__(self, *args, train_size=(1, 3, 256, 256), fast_imp=False, **kwargs):
         Local_Base.__init__(self)
-        NAFNet.__init__(self, *args, **kwargs)
+        PlainNet.__init__(self, *args, **kwargs)
 
         N, C, H, W = train_size
         base_size = (int(H * 1.5), int(W * 1.5))
@@ -203,7 +192,7 @@ if __name__ == '__main__':
     print('enc blks', enc_blks, 'middle blk num', middle_blk_num, 'dec blks', dec_blks, 'width' , width)
     
     using('start . ')
-    net = NAFNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, 
+    net = PlainNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, 
                       enc_blk_nums=enc_blks, dec_blk_nums=dec_blks)
 
     using('network .. ')

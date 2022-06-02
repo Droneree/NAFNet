@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: SRCNN-GainMat-F15-sob
+name: SRCNN-GainMat-F15-sob-trainset500
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -75,7 +75,7 @@ train:
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 30000
+  total_iter: 2000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -110,6 +110,8 @@ val:
       type: calculate_ssim
       crop_border: 0
       test_y_channel: false
+    mse:
+      type: calculate_mse
 
 # logging settings
 logger:

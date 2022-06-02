@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: SRCNN-GainMat-F15-sob
+name: SRCNN-GainMat-F15-aob-32-k1
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -15,8 +15,8 @@ datasets:
   train:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/train/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/train/gt
 
     filename_tmpl: '{}'
     io_backend:
@@ -37,8 +37,8 @@ datasets:
   val:
     name: GainMat
     type: PairedImageDataset
-    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/gt
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/val/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/val/gt
     io_backend:
       type: disk
 
@@ -47,8 +47,8 @@ network_g:
   type: SRCNN
   img_channel: 1
   strides: [!!python/tuple [1, 1], !!python/tuple [1, 1], !!python/tuple [1, 1]]
-  kernel_sizes: [!!python/tuple [21, 9], !!python/tuple [15, 15], !!python/tuple [5, 5]]
-  c_expand: 64
+  kernel_sizes: [!!python/tuple [81, 31], !!python/tuple [21, 21], !!python/tuple [5, 5]]
+  c_expand: 32
 
 # mannual specify image size
 img_sz:
@@ -66,7 +66,7 @@ path:
 train:
   optim_g:
     type: AdamW
-    lr: !!float 1e-4
+    lr: !!float 1e-5
     weight_decay: 0.
     # betas: [0.9, 0.9]
 
@@ -75,7 +75,7 @@ train:
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 30000
+  total_iter: 20000
   warmup_iter: -1 # no warm up
 
   # losses
@@ -110,6 +110,8 @@ val:
       type: calculate_ssim
       crop_border: 0
       test_y_channel: false
+    mse:
+      type: calculate_mse
 
 # logging settings
 logger:
