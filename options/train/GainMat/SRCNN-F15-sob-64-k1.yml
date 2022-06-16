@@ -1,0 +1,128 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2022 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: SRCNN-GainMat-F15-sob-64-k1
+model_type: ImageRestorationModel
+scale: 1
+num_gpu: 4
+manual_seed: 10
+
+datasets:
+  train:
+    name: GainMat
+    type: PairedImageDataset
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/gt
+
+    filename_tmpl: '{}'
+    io_backend:
+      type: disk
+
+    gt_size: 256
+    use_flip: false
+    use_rot: false
+    # scale: false
+
+    # data loader
+    use_shuffle: true
+    num_worker_per_gpu: 4
+    batch_size_per_gpu: 4
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+
+  val:
+    name: GainMat
+    type: PairedImageDataset
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/gt
+    io_backend:
+      type: disk
+
+
+network_g:
+  type: SRCNN
+  img_channel: 1
+  strides: [!!python/tuple [1, 1], !!python/tuple [1, 1], !!python/tuple [1, 1]]
+  kernel_sizes: [!!python/tuple [17, 17], !!python/tuple [11, 11], !!python/tuple [5, 5]]
+  c_expand: 64
+
+# mannual specify image size
+img_sz:
+  img_ht: 960
+  img_wd: 240
+  
+# path
+path:
+  pretrain_network_g: ~
+  strict_load_g: true
+  resume_state: ~
+  # models: /home/lllei/AI_localization/NAFNet/experiments
+
+# training settings
+train:
+  optim_g:
+    type: AdamW
+    lr: !!float 1e-4
+    weight_decay: 0.
+    # betas: [0.9, 0.9]
+
+  scheduler:
+    type: TrueCosineAnnealingLR
+    T_max: 200000
+    eta_min: !!float 1e-7
+
+  total_iter: 50000
+  warmup_iter: -1 # no warm up
+
+  # losses
+  pixel_opt:
+    type: MSELoss
+    loss_weight: 1
+    reduction: mean
+
+  l1_opt:
+    type: L1Loss
+    loss_weight: 1.0
+    reduction: mean
+
+  l2_opt:
+    type: MSELoss
+    loss_weight: 1.0
+    reduction: mean
+    
+# validation settings
+val:
+  val_freq: !!float 2e4
+  save_img: false
+  use_image: false
+  rgb2bgr: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false
+    mse:
+      type: calculate_mse
+
+# logging settings
+logger:
+  print_freq: 200
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500

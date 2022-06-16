@@ -383,6 +383,7 @@ class ImageRestorationModel(BaseModel):
             for key in metrics_dict:
                 metrics_dict[key] /= cnt
 
+            print('cnt: ', cnt)
             self._log_validation_metric_values(current_iter, dataloader.dataset.opt['name'],
                                                tb_logger, metrics_dict)
         return 0.

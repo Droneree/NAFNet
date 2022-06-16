@@ -1,0 +1,75 @@
+# ------------------------------------------------------------------------
+# Copyright (c) 2022 megvii-model. All Rights Reserved.
+# ------------------------------------------------------------------------
+# Modified from BasicSR (https://github.com/xinntao/BasicSR)
+# Copyright 2018-2020 BasicSR Authors
+# ------------------------------------------------------------------------
+# general settings
+name: SRCNN-GainMat-F15-aob-64-k5-test
+model_type: ImageRestorationModel
+scale: 1
+num_gpu: 1
+manual_seed: 10
+
+datasets:
+
+  val:
+    name: GainMat
+    type: PairedImageDataset
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/test/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/avrgobs/025/test/gt
+    io_backend:
+      type: disk
+
+
+network_g:
+  type: SRCNN
+  img_channel: 1
+  strides: [!!python/tuple [1, 1], !!python/tuple [1, 1], !!python/tuple [1, 1]]
+  kernel_sizes: [!!python/tuple [65, 65], !!python/tuple [27, 27], !!python/tuple [33, 33]]
+  c_expand: 64
+
+# mannual specify image size
+img_sz:
+  img_ht: 960
+  img_wd: 240
+  
+# path
+path:
+  pretrain_network_g: /home/lllei/AI_localization/NAFNet/experiments/SRCNN-GainMat-F15-aob-64-k5/models/net_g_50000.pth
+  strict_load_g: true
+  resume_state: ~
+  # models: /home/lllei/AI_localization/NAFNet/experiments
+
+# validation settings
+val:
+  val_freq: !!float 2e4
+  save_img: false
+  use_image: false
+  rgb2bgr: false
+
+  metrics:
+    psnr: # metric name, can be arbitrary
+      type: calculate_psnr
+      crop_border: 0
+      test_y_channel: false
+    ssim:
+      type: calculate_ssim
+      crop_border: 0
+      test_y_channel: false
+    mse:
+      type: calculate_mse
+
+# logging settings
+logger:
+  print_freq: 200
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
