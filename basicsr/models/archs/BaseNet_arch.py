@@ -26,17 +26,24 @@ class SimpleGate(nn.Module):
         x1, x2 = x.chunk(2, dim=1)
         return x1 * x2
 
-class PlainBlock(nn.Module):
-    def __init__(self, c, DW_Expand=2, FFN_Expand=2, drop_out_rate=0.):
+class BaseBlock(nn.Module):
+    def __init__(self, c, DW_Expand=1, FFN_Expand=1, drop_out_rate=0.):
         super().__init__()
         dw_channel = c * DW_Expand
-        self.conv1 = nn.Conv2d(in_channels=c, out_channels=c, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
-        self.conv2 = nn.Conv2d(in_channels=c, out_channels=c, kernel_size=3, padding=1, stride=1, groups=c,
+        self.conv1 = nn.Conv2d(in_channels=c, out_channels=dw_channel, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
+        self.conv2 = nn.Conv2d(in_channels=dw_channel, out_channels=dw_channel, kernel_size=3, padding=0, stride=1, groups=dw_channel,
                                bias=True)
-        self.conv3 = nn.Conv2d(in_channels=c, out_channels=c, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
+        self.conv3 = nn.Conv2d(in_channels=dw_channel, out_channels=c, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
         
-        # relu
-        self.relu = nn.ReLU()
+        # Simplified Channel Attention
+        self.sca = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels=dw_channel, out_channels=dw_channel, kernel_size=1, padding=0, stride=1,
+                      groups=1, bias=True),
+        )
+
+        # SimpleGate
+        self.gelu = nn.GELU()
 
         ffn_channel = FFN_Expand * c
         self.conv4 = nn.Conv2d(in_channels=c, out_channels=ffn_channel, kernel_size=1, padding=0, stride=1, groups=1, bias=True)
@@ -57,8 +64,10 @@ class PlainBlock(nn.Module):
         x = self.norm1(x)
 
         x = self.conv1(x)
+        x = self.CircularPadding(x)
         x = self.conv2(x)
-        x = self.relu(x)
+        x = self.gelu(x)
+        x = x * self.sca(x)
         x = self.conv3(x)
 
         x = self.dropout1(x)
@@ -66,22 +75,41 @@ class PlainBlock(nn.Module):
         y = inp + x * self.beta
 
         x = self.conv4(self.norm2(y))
-        x = self.relu(x)
+        # x = self.conv4(y) # if no layer normalization 
+        x = self.gelu(x)
         x = self.conv5(x)
 
         x = self.dropout2(x)
 
         return y + x * self.gamma
 
+    def CircularPadding(self, inp):
+        _, _, H, W = inp.shape
+        kht, kwd = [3, 3]
+        sht, swd = [1, 1]
+        assert kwd%2 != 0 and kht%2 !=0 and (W-kwd)%swd==0 and (H-kht)%sht ==0, 'kernel_size should be odd, (dim-kernel_size) should be divisible by stride'
 
-class PlainNet(nn.Module):
+        pwd = int((W - 1 - (W - kwd) / swd) // 2)
+        pht = int((H - 1 - (H - kht) / sht) // 2)
+        
+        # kht1, kwd1 = self.kernel_sizes[1]
+        # kht2, kwd2 = self.kernel_sizes[2]
+        # pwd = int((W - 1 - (W - kwd) / swd) // 2 + (W - 1 - (W - kwd1) / swd) // 2 + (W - 1 - (W - kwd2) / swd) // 2)
+        # pht = int((H - 1 - (H - kht) / sht) // 2 + (H - 1 - (H - kht1) / sht) // 2 + (H - 1 - (H - kht2) / sht) // 2)
+        
+        x = F.pad(inp, (pwd, pwd, pht, pht), 'circular')
+
+        return x
+
+
+class BaseNet(nn.Module):
 
     def __init__(self, img_channel=3, width=16, middle_blk_num=1, enc_blk_nums=[], dec_blk_nums=[]):
         super().__init__()
 
-        self.intro = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3, padding=1, stride=1, groups=1,
+        self.intro = nn.Conv2d(in_channels=img_channel, out_channels=width, kernel_size=3, padding=0, stride=1, groups=1,
                               bias=True)
-        self.ending = nn.Conv2d(in_channels=width, out_channels=img_channel, kernel_size=3, padding=1, stride=1, groups=1,
+        self.ending = nn.Conv2d(in_channels=width, out_channels=img_channel, kernel_size=3, padding=0, stride=1, groups=1,
                               bias=True)
 
         self.encoders = nn.ModuleList()
@@ -94,7 +122,7 @@ class PlainNet(nn.Module):
         for num in enc_blk_nums:
             self.encoders.append(
                 nn.Sequential(
-                    *[PlainBlock(chan) for _ in range(num)]
+                    *[BaseBlock(chan) for _ in range(num)]
                 )
             )
             self.downs.append(
@@ -104,7 +132,7 @@ class PlainNet(nn.Module):
 
         self.middle_blks = \
             nn.Sequential(
-                *[PlainBlock(chan) for _ in range(middle_blk_num)]
+                *[BaseBlock(chan) for _ in range(middle_blk_num)]
             )
 
         for num in dec_blk_nums:
@@ -117,7 +145,7 @@ class PlainNet(nn.Module):
             chan = chan // 2
             self.decoders.append(
                 nn.Sequential(
-                    *[PlainBlock(chan) for _ in range(num)]
+                    *[BaseBlock(chan) for _ in range(num)]
                 )
             )
 
@@ -127,7 +155,8 @@ class PlainNet(nn.Module):
         B, C, H, W = inp.shape
         inp = self.check_image_size(inp)
 
-        x = self.intro(inp)
+        x = self.CircularPadding(inp)
+        x = self.intro(x)
 
         encs = []
 
@@ -143,6 +172,7 @@ class PlainNet(nn.Module):
             x = x + enc_skip
             x = decoder(x)
 
+        x = self.CircularPadding(x)
         x = self.ending(x)
         x = x + inp
 
@@ -152,13 +182,32 @@ class PlainNet(nn.Module):
         _, _, h, w = x.size()
         mod_pad_h = (self.padder_size - h % self.padder_size) % self.padder_size
         mod_pad_w = (self.padder_size - w % self.padder_size) % self.padder_size
-        x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h))
+        x = F.pad(x, (0, mod_pad_w, 0, mod_pad_h), 'circular')
         return x
 
-class PLainNetLocal(Local_Base, PlainNet):
+    def CircularPadding(self, inp):
+        _, _, H, W = inp.shape
+        kht, kwd = [3, 3]
+        sht, swd = [1, 1]
+        assert kwd%2 != 0 and kht%2 !=0 and (W-kwd)%swd==0 and (H-kht)%sht ==0, 'kernel_size should be odd, (dim-kernel_size) should be divisible by stride'
+
+        pwd = int((W - 1 - (W - kwd) / swd) // 2)
+        pht = int((H - 1 - (H - kht) / sht) // 2)
+        
+        # kht1, kwd1 = self.kernel_sizes[1]
+        # kht2, kwd2 = self.kernel_sizes[2]
+        # pwd = int((W - 1 - (W - kwd) / swd) // 2 + (W - 1 - (W - kwd1) / swd) // 2 + (W - 1 - (W - kwd2) / swd) // 2)
+        # pht = int((H - 1 - (H - kht) / sht) // 2 + (H - 1 - (H - kht1) / sht) // 2 + (H - 1 - (H - kht2) / sht) // 2)
+        
+        x = F.pad(inp, (pwd, pwd, pht, pht), 'circular')
+
+        return x
+
+
+class BaseNetLocal(Local_Base, BaseNet):
     def __init__(self, *args, train_size=(1, 3, 256, 256), fast_imp=False, **kwargs):
         Local_Base.__init__(self)
-        PlainNet.__init__(self, *args, **kwargs)
+        BaseNet.__init__(self, *args, **kwargs)
 
         N, C, H, W = train_size
         base_size = (int(H * 1.5), int(W * 1.5))
@@ -194,7 +243,7 @@ if __name__ == '__main__':
     print('enc blks', enc_blks, 'middle blk num', middle_blk_num, 'dec blks', dec_blks, 'width' , width)
     
     using('start . ')
-    net = PlainNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, 
+    net = BaseNet(img_channel=img_channel, width=width, middle_blk_num=middle_blk_num, 
                       enc_blk_nums=enc_blks, dec_blk_nums=dec_blks)
 
     using('network .. ')

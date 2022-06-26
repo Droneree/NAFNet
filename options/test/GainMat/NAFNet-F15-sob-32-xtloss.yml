@@ -5,54 +5,57 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: NAFNet-REDS-width64-test
+name: NAFNet-GainMat-F15-sob-32-xtloss-test
 model_type: ImageRestorationModel
 scale: 1
-num_gpu: 1 # set num_gpu: 0 for cpu mode
+num_gpu: 0 # set num_gpu: 0 for cpu mode
 manual_seed: 10
 
 # dataset and data loader settings
 datasets:
 
-  test:
-    name: reds-val300-test
+  val:
+    name: GainMat
     type: PairedImageDataset
 
-    dataroot_gt: ./datasets/REDS/val/sharp_300.lmdb
-    dataroot_lq: ./datasets/REDS/val/blur_300.lmdb
+    dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/test/lq
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/test/xt
 
     io_backend:
-      type: lmdb
+      type: disk
 
 # network structures
 network_g:
-  type: NAFNetLocal
-  width: 64
-  enc_blk_nums: [1, 1, 1, 28]
+  type: NAFNet
+  width: 32
+  img_channel: 1
+  enc_blk_nums: [1, 1, 1, 1]
   middle_blk_num: 1
   dec_blk_nums: [1, 1, 1, 1]
 
+# mannual specify image size
+img_sz:
+  img_ht: 960
+  img_wd: 240
+  
 # path
 path:
-  pretrain_network_g: experiments/pretrained_models/NAFNet-REDS-width64.pth
+  pretrain_network_g: /home/lllei/AI_localization/NAFNet/experiments/NAFNet-GainMat-F15-sob-32-xtloss/models/net_g_3000.pth
   strict_load_g: true
   resume_state: ~
 
 # validation settings
 val:
-  save_img: true
-  grids: false
-
+  val_freq: !!float 2e4
+  save_img: false
+  use_image: false
+  rgb2bgr: false
 
   metrics:
-    psnr: # metric name, can be arbitrary
-      type: calculate_psnr
-      crop_border: 0
-      test_y_channel: false
-    ssim:
-      type: calculate_ssim
-      crop_border: 0
-      test_y_channel: false
+    xt_mse:
+      type: calculate_xtmse
+      model_size: 960
+      nobs: 240
 
 # dist training settings
 dist_params:

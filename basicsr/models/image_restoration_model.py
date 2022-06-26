@@ -17,6 +17,7 @@ from basicsr.models.base_model import BaseModel
 from basicsr.utils import get_root_logger, imwrite, tensor2img
 from basicsr.utils.dist_util import get_dist_info
 from torchsummary import summary
+from torch.nn.functional import softplus
 
 
 loss_module = importlib.import_module('basicsr.models.losses')
@@ -228,8 +229,19 @@ class ImageRestorationModel(BaseModel):
             if l_style is not None:
                 l_total += l_style
                 loss_dict['l_style'] = l_style
-
-
+        
+        # Lipschitz regularization
+        train_opt = self.opt['train']
+        if train_opt.get('lips_reg'):
+            a_lips = train_opt['lips_reg']['loss_weight']
+            l_lips = 1.
+            for k, v in self.net_g.named_parameters():
+                if k.endswith('ci'):
+                    assert v.requires_grad
+                    l_lips *= softplus(v[0])
+            l_total += a_lips * l_lips
+            loss_dict['l_lips'] = a_lips * l_lips
+                    
         l_total = l_total + 0. * sum(p.sum() for p in self.net_g.parameters())
 
         l_total.backward()

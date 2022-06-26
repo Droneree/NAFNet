@@ -87,6 +87,97 @@ class MSELoss(nn.Module):
         return self.loss_weight * mse_loss(
             pred, target, weight, reduction=self.reduction)
 
+class XtLoss(nn.Module):
+    """Xt (L2) loss.
+
+    Args:
+        loss_weight (float): Loss weight for MSE loss. Default: 1.0.
+        reduction (str): Specifies the reduction to apply to the output.
+            Supported choices are 'none' | 'mean' | 'sum'. Default: 'mean'.
+    """
+
+    def __init__(self, loss_weight, reduction, model_size, nobs):
+        super(XtLoss, self).__init__()
+        if reduction not in ['none', 'mean', 'sum']:
+            raise ValueError(f'Unsupported reduction mode: {reduction}. '
+                             f'Supported ones are: {_reduction_modes}')
+
+        self.loss_weight = loss_weight
+        self.reduction = reduction
+        self.model_size = model_size
+        self.nobs = nobs
+
+    def forward(self, pred, target, weight=None, **kwargs):
+        """
+        Args:
+            pred (Tensor): of shape (N, C, H, W). Predicted tensor.
+            target (Tensor): of shape (N, C, H, W). Ground truth tensor.
+            weight (Tensor, optional): of shape (N, C, H, W). Element-wise
+                weights. Default: None.
+        """
+
+        xt = target[:, :, 0:self.model_size, :]
+        xf = target[:, :, self.model_size:self.model_size * 2, :]
+        inc = target[:, :, self.model_size * 2:self.model_size * 2 + self.nobs, :]
+        # print('pred shape:', pred.shape)
+        # print('inc shape:', inc.shape)        
+
+        # pred = torch.squeeze(pred)
+        # inc = torch.squeeze(inc)
+        # xf = torch.squeeze(xf)
+        # xt = torch.squeeze(xt)
+
+        xa = xf + torch.matmul(pred, inc)
+        return self.loss_weight * mse_loss(
+            xt, xa, weight, reduction=self.reduction)
+
+class XGLoss(nn.Module):
+    """Xt (L2) loss.
+
+    Args:
+        loss_weight (float): Loss weight for MSE loss. Default: 1.0.
+        reduction (str): Specifies the reduction to apply to the output.
+            Supported choices are 'none' | 'mean' | 'sum'. Default: 'mean'.
+    """
+
+    def __init__(self, loss_weight, reduction, model_size, nobs):
+        super(XGLoss, self).__init__()
+        if reduction not in ['none', 'mean', 'sum']:
+            raise ValueError(f'Unsupported reduction mode: {reduction}. '
+                             f'Supported ones are: {_reduction_modes}')
+
+        self.loss_weight = loss_weight
+        self.reduction = reduction
+        self.model_size = model_size
+        self.nobs = nobs
+
+    def forward(self, pred, target, weight=None, **kwargs):
+        """
+        Args:
+            pred (Tensor): of shape (N, C, H, W). Predicted tensor.
+            target (Tensor): of shape (N, C, H, W). Ground truth tensor.
+            weight (Tensor, optional): of shape (N, C, H, W). Element-wise
+                weights. Default: None.
+        """
+
+        xt = target[:, :, 0:self.model_size, :]
+        xf = target[:, :, self.model_size:self.model_size * 2, :]
+        inc = target[:, :, self.model_size * 2:self.model_size * 2 + self.nobs, :]
+        kgt = target[:, :, self.model_size * 2 + self.nobs:, :]
+        kgt = torch.reshape(kgt, (-1, 1, self.model_size, self.nobs))
+        # print('kgt shape:', kgt.shape)
+        # print('pred shape:', pred.shape)        
+
+        # pred = torch.squeeze(pred)
+        # inc = torch.squeeze(inc)
+        # xf = torch.squeeze(xf)
+        # xt = torch.squeeze(xt)
+
+        xa = xf + torch.matmul(pred, inc)
+
+        loss = torch.mean((xt - xa)**2) + self.loss_weight * torch.mean((pred - kgt)**2)
+        return loss
+
 class PSNRLoss(nn.Module):
 
     def __init__(self, loss_weight=1.0, reduction='mean', toY=False):

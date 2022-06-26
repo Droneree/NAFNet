@@ -22,6 +22,40 @@ def calculate_mse(pred, gt):
     mse = np.mean((pred - gt)**2)
 
     return mse*1e6
+
+def calculate_xtmse(pred, target, model_size, nobs):
+    if type(pred) == torch.Tensor:
+        pred = pred.detach().cpu().numpy()
+    if type(target) == torch.Tensor:
+        target = target.detach().cpu().numpy()
+    pred = np.reshape(pred, (-1, 1, model_size, nobs))
+    target = np.reshape(target, (-1, 1, int(model_size*2+nobs), 1))
+
+    xt = target[:, :, 0:model_size, :]
+    xf = target[:, :, model_size:model_size * 2, :]
+    inc = target[:, :, model_size * 2:model_size * 2 + nobs, :]
+
+    xa = xf + np.matmul(pred, inc)
+    return np.mean((xa - xt)**2)
+    
+def calculate_xgmse(pred, target, model_size, nobs, loss_weight):
+    if type(pred) == torch.Tensor:
+        pred = pred.detach().cpu().numpy()
+    if type(target) == torch.Tensor:
+        target = target.detach().cpu().numpy()
+    pred = np.reshape(pred, (-1, 1, model_size, nobs))
+    target = np.reshape(target, (-1, 1, int(model_size*2+nobs+model_size*nobs), 1))
+
+    xt = target[:, :, 0:model_size, :]
+    xf = target[:, :, model_size:model_size * 2, :]
+    inc = target[:, :, model_size * 2:model_size * 2 + nobs, :]
+    kgt = target[:, :, model_size * 2 + nobs:, :]
+    kgt = np.reshape(kgt, (-1, 1, model_size, nobs))
+
+    xa = xf + np.matmul(pred, inc)
+
+    loss = np.mean((xa - xt)**2) + loss_weight * np.mean((pred - kgt)**2)
+    return loss
     
 def calculate_psnr(img1,
                    img2,
