@@ -5,7 +5,7 @@
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
 # general settings
-name: NAFNet-GainMat-F15-sob-32-lr
+name: NAFNet-GainMat-F15-sob-32-xgloss
 model_type: ImageRestorationModel
 scale: 1
 num_gpu: 4
@@ -16,7 +16,7 @@ datasets:
     name: GainMat
     type: PairedImageDataset
     dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/gt
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/train/xgt
 
     filename_tmpl: '{}'
     io_backend:
@@ -38,13 +38,13 @@ datasets:
     name: GainMat
     type: PairedImageDataset
     dataroot_lq: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/lq
-    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/gt
+    dataroot_gt: /home/lllei/AI_localization/NAFNet/datasets/GainMat/F15/singobs/val/xgt
     io_backend:
       type: disk
 
 
 network_g:
-  type: NAFNet_lr
+  type: NAFNet
   width: 32
   img_channel: 1
   enc_blk_nums: [1, 1, 1, 1]
@@ -76,15 +76,16 @@ train:
     T_max: 200000
     eta_min: !!float 1e-7
 
-  total_iter: 100000
+  total_iter: 50000
   warmup_iter: -1 # no warm up
-  use_grad_clip: true
 
   # losses
   pixel_opt:
-    type: MSELoss
-    loss_weight: 1.0
+    type: XGLoss
+    loss_weight: 1000.0
     reduction: mean
+    model_size: 960
+    nobs: 240
 
   l1_opt:
     type: L1Loss
@@ -95,33 +96,25 @@ train:
     type: MSELoss
     loss_weight: 1.0
     reduction: mean
-
-  lips_reg:
-    loss_weight: !!float 1e-16
     
 # validation settings
 val:
-  val_freq: !!float 5e3
+  val_freq: !!float 1e3
   save_img: false
   use_image: false
   rgb2bgr: false
 
   metrics:
-    psnr: # metric name, can be arbitrary
-      type: calculate_psnr
-      crop_border: 0
-      test_y_channel: false
-    ssim:
-      type: calculate_ssim
-      crop_border: 0
-      test_y_channel: false
-    mse:
-      type: calculate_mse
+    xg_mse:
+      type: calculate_xgmse
+      model_size: 960
+      nobs: 240
+      loss_weight: 1000.0
       
 # logging settings
 logger:
   print_freq: 200
-  save_checkpoint_freq: !!float 5e3
+  save_checkpoint_freq: !!float 2000
   use_tb_logger: true
   wandb:
     project: ~

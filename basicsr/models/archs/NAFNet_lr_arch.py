@@ -26,7 +26,7 @@ from torch.nn.functional import softplus
 class _LipNorm(nn.Module):
     def __init__(self, weight: torch.Tensor):
         super().__init__()
-        self.ci = nn.Parameter(torch.randn(1), requires_grad=True)
+        self.ci = nn.Parameter(torch.tensor(1.), requires_grad=True)
 
     def _reshape_weight_to_matrix(self, weight: torch.Tensor) -> torch.Tensor:
         # Precondition

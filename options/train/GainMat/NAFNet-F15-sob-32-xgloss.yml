@@ -82,7 +82,7 @@ train:
   # losses
   pixel_opt:
     type: XGLoss
-    loss_weight: 1000.0
+    loss_weight: !!float 1e8
     reduction: mean
     model_size: 960
     nobs: 240
@@ -109,7 +109,7 @@ val:
       type: calculate_xgmse
       model_size: 960
       nobs: 240
-      loss_weight: 1000.0
+      loss_weight: !!float 1e8
       
 # logging settings
 logger:

@@ -238,7 +238,7 @@ class ImageRestorationModel(BaseModel):
             for k, v in self.net_g.named_parameters():
                 if k.endswith('ci'):
                     assert v.requires_grad
-                    l_lips *= softplus(v[0])
+                    l_lips *= softplus(v)
             l_total += a_lips * l_lips
             loss_dict['l_lips'] = a_lips * l_lips
                     
