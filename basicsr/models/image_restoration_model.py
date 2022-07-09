@@ -304,10 +304,14 @@ class ImageRestorationModel(BaseModel):
                 self.grids_inverse()
 
             visuals = self.get_current_visuals()
-            sr_img = tensor2img([visuals['result']], rgb2bgr=rgb2bgr)
-            if 'gt' in visuals:
-                gt_img = tensor2img([visuals['gt']], rgb2bgr=rgb2bgr)
-                del self.gt
+
+            # bugs may come in here when 'image' have negative values, 
+            # since 'tensor2img' function contains in-place operation(clamp_), which changes tensor's content
+            # sr_img = tensor2img([visuals['result']], rgb2bgr=rgb2bgr) 
+
+            # if 'gt' in visuals:
+                # gt_img = tensor2img([visuals['gt']], rgb2bgr=rgb2bgr)
+                # del self.gt
 
             # tentative for out of GPU memory
             del self.lq

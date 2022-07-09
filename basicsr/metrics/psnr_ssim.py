@@ -15,13 +15,19 @@ import torch
 
 def calculate_mse(pred, gt):
     if type(pred) == torch.Tensor:
-        pred = pred.detach().cpu().numpy().squeeze()
+        pred = pred.detach().cpu().numpy()
     if type(gt) == torch.Tensor:
-        gt = gt.detach().cpu().numpy().squeeze()
+        gt = gt.detach().cpu().numpy()
         
+    pred = pred.squeeze().astype(np.float64)
+    gt = gt.squeeze().astype(np.float64)
+
+    assert pred.shape == gt.shape, (
+        f'Image shapes are differnet: {pred.shape}, {gt.shape}.')
+
     mse = np.mean((pred - gt)**2)
 
-    return mse*1e6
+    return mse
 
 def calculate_xtmse(pred, target, model_size, nobs):
     if type(pred) == torch.Tensor:
