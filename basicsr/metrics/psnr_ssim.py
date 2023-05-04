@@ -6,12 +6,15 @@
 # Modified from BasicSR (https://github.com/xinntao/BasicSR)
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
+import sys 
+sys.path.append('/home/lllei/AI_localization/L05/git_repo/general')
+
 import cv2
 import numpy as np
-
 from basicsr.metrics.metric_util import reorder_image, to_y_channel
 from skimage.metrics import structural_similarity
 import torch
+from obs_operator import H
 
 def calculate_mse(pred, gt):
     if type(pred) == torch.Tensor:
@@ -43,6 +46,24 @@ def calculate_xtmse(pred, target, model_size, nobs):
 
     xa = xf + np.matmul(pred, inc)
     return np.mean((xa - xt)**2)
+ 
+def calculate_xtmse_ob(pred, target, model_size, nobs):
+    if type(pred) == torch.Tensor:
+        pred = pred.detach().cpu().numpy()
+    if type(target) == torch.Tensor:
+        target = target.detach().cpu().numpy()
+    pred = np.reshape(pred, (-1, 1, model_size, nobs))
+    target = np.reshape(target, (-1, 1, int(model_size+nobs*2), 1))
+
+    xt = target[:, :, 0:nobs, :]
+    xf = target[:, :, nobs:model_size+nobs, :]
+    inc = target[:, :, (model_size+nobs):(model_size+nobs*2), :]
+
+    xa = xf + np.matmul(pred, inc)
+    Hk = np.array(H('single', model_size, model_size/nobs))
+    Hk = np.reshape(Hk, (-1, 1, nobs, model_size))
+
+    return np.mean((np.matmul(Hk, xa) - xt)**2)
     
 def calculate_xgmse(pred, target, model_size, nobs, loss_weight):
     if type(pred) == torch.Tensor:

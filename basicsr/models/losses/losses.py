@@ -4,10 +4,14 @@
 # Modified from BasicSR (https://github.com/xinntao/BasicSR)
 # Copyright 2018-2020 BasicSR Authors
 # ------------------------------------------------------------------------
+import sys 
+sys.path.append('/home/lllei/AI_localization/L05/git_repo/general')
+
 import torch
 from torch import nn as nn
 from torch.nn import functional as F
 import numpy as np
+from obs_operator import H
 
 from basicsr.models.losses.loss_util import weighted_loss
 
@@ -130,6 +134,53 @@ class XtLoss(nn.Module):
         xa = xf + torch.matmul(pred, inc)
         return self.loss_weight * mse_loss(
             xt, xa, weight, reduction=self.reduction)
+
+class XtobLoss(nn.Module):
+    """Xt (L2) loss.
+
+    Args:
+        loss_weight (float): Loss weight for MSE loss. Default: 1.0.
+        reduction (str): Specifies the reduction to apply to the output.
+            Supported choices are 'none' | 'mean' | 'sum'. Default: 'mean'.
+    """
+
+    def __init__(self, loss_weight, reduction, model_size, nobs):
+        super(XtobLoss, self).__init__()
+        if reduction not in ['none', 'mean', 'sum']:
+            raise ValueError(f'Unsupported reduction mode: {reduction}. '
+                             f'Supported ones are: {_reduction_modes}')
+
+        self.loss_weight = loss_weight
+        self.reduction = reduction
+        self.model_size = model_size
+        self.nobs = nobs
+        self.Hk = torch.tensor(H('single', self.model_size, self.model_size/self.nobs)).float().cuda()
+
+    def forward(self, pred, target, weight=None, **kwargs):
+        """
+        Args:
+            pred (Tensor): of shape (N, C, H, W). Predicted tensor.
+            target (Tensor): of shape (N, C, H, W). Ground truth tensor.
+            weight (Tensor, optional): of shape (N, C, H, W). Element-wise
+                weights. Default: None.
+        """
+
+        xt = target[:, :, 0:self.nobs, :]
+        xf = target[:, :, self.nobs:self.model_size+self.nobs, :]
+        inc = target[:, :, (self.model_size+self.nobs):(self.model_size+self.nobs*2), :]
+        # print('pred shape:', pred.shape)
+        # print('inc shape:', inc.shape)        
+
+        # pred = torch.squeeze(pred)
+        # inc = torch.squeeze(inc)
+        # xf = torch.squeeze(xf)
+        # xt = torch.squeeze(xt)
+
+        xa = xf + torch.matmul(pred, inc)
+        Hk = torch.reshape(self.Hk, (-1, 1, self.nobs, self.model_size))
+
+        return self.loss_weight * mse_loss(
+            xt, torch.matmul(Hk, xa), weight, reduction=self.reduction)
 
 class XGLoss(nn.Module):
     """Xt (L2) loss.
