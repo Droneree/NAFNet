@@ -60,6 +60,8 @@ class PairedImageDataset(data.Dataset):
         else:
             self.filename_tmpl = '{}'
 
+        # print('------------------------',self.opt)
+
         if self.io_backend_opt['type'] == 'lmdb':
             self.io_backend_opt['db_paths'] = [self.lq_folder, self.gt_folder]
             self.io_backend_opt['client_keys'] = ['lq', 'gt']
@@ -78,7 +80,8 @@ class PairedImageDataset(data.Dataset):
     def __getitem__(self, index):
         if self.file_client is None:
             self.file_client = FileClient(
-                self.io_backend_opt.pop('type'), **self.io_backend_opt)
+                # self.io_backend_opt['type'], **self.io_backend_opt)
+                self.io_backend_opt['type'])
 
         scale = self.opt['scale']
 
